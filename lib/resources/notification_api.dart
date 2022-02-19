@@ -8,8 +8,7 @@ class NotificationApi {
 
   static Future _notificationDetails() async {
     return const NotificationDetails(
-      android: AndroidNotificationDetails(
-          'channel id', 'channel name',
+      android: AndroidNotificationDetails('channel id', 'channel name',
           importance: Importance.max),
       iOS: IOSNotificationDetails(),
     );
@@ -33,7 +32,7 @@ class NotificationApi {
   }
 
   static void showScheduledNotification({
-    int id = 0,
+    required int id,
     String? title,
     String? body,
     String? payload,
@@ -49,4 +48,8 @@ class NotificationApi {
             UILocalNotificationDateInterpretation.absoluteTime,
         androidAllowWhileIdle: true,
       );
+
+  static Future cancelNotification(int id) async {
+    await _notifications.cancel(id);
+  }
 }

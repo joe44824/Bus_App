@@ -1,3 +1,4 @@
+import 'package:bus_app/constants/bus_available_enum.dart';
 import 'package:bus_app/models/service_model.dart';
 import 'package:bus_app/resources/notification_api.dart';
 import 'package:flutter/material.dart';
@@ -14,9 +15,21 @@ class ServiceRow extends StatefulWidget {
 }
 
 class _ServiceRowState extends State<ServiceRow> {
+  late ServiceModel service;
+  late String busStopCode;
+  late int id;
+
+  @override
+  void initState() {
+    super.initState();
+    busStopCode = widget.busStopCode;
+    service = widget.service;
+    id = int.tryParse(widget.service.busNo) == null ? 0 : int.parse(widget.service.busNo) + int.parse(widget.busStopCode);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return busNo(widget.service);
+    return busNo(service);
   }
 
   Widget busNo(ServiceModel service) {
@@ -37,125 +50,122 @@ class _ServiceRowState extends State<ServiceRow> {
       caption: timing.toString(),
       color: color,
       icon: icon,
-      onTap: () => setAlarm(timing),
+      onTap: () => setAlarm(
+        timing,
+        service,
+      ),
     );
   }
 
-  void setAlarm(int userTiming) {
-    final busNo = widget.service.getServiceNo;
-
-    final parsedBus1 = (widget.service.timeinMinBus1 == "Arr." ||
-            widget.service.timeinMinBus1 == "Left")
-        ? 100
-        : int.parse(widget.service.timeinMinBus1);
-    final parsedBus2 = (widget.service.timeinMinBus2 == "Arr." ||
-            widget.service.timeinMinBus1 == "Left")
-        ? 100
-        : int.parse(widget.service.timeinMinBus2);
-    final parsedBus3 = (widget.service.timeinMinBus1 == "Arr." ||
-            widget.service.timeinMinBus3 == "Left")
-        ? 100
-        : int.parse(widget.service.timeinMinBus3);
-
-    int countdown = 0;
-
-    if (userTiming <= parsedBus1) {
-      countdown = parsedBus1 - userTiming;
-    } else if (userTiming <= parsedBus2) {
-      countdown = parsedBus2 - userTiming;
-    } else if (userTiming <= parsedBus3) {
-      countdown = parsedBus3 - userTiming;
-    }
-
-    if (countdown == 100) {
-      const snackBar = SnackBar(
-          duration: Duration(seconds: 1),
-          content: Text(
-            "No buses operating at the moment",
-            style: TextStyle(fontSize: 24),
-          ));
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(snackBar);
-    } else if (countdown == 0) {
-      NotificationApi.showNotification(body: "The bus is reaching");
-      const snackBar = SnackBar(
-          duration: Duration(seconds: 1),
-          content: Text(
-            "Notification is set",
-            style: TextStyle(fontSize: 24),
-          ));
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(snackBar);
-    } else {
-      const snackBar = SnackBar(
-          duration: Duration(seconds: 1),
-          content: Text(
-            "Notification is set",
-            style: TextStyle(fontSize: 24),
-          ));
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(snackBar);
-      NotificationApi.showScheduledNotification(
-          body: "$busNo is arriving in $countdown",
-          scheduledTime: DateTime.now().add(Duration(minutes: countdown)));
-    }
+  Widget buildListTile(ServiceModel service) {
+    return Card(
+      child: ListTile(
+        leading: Text(service.busNo),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            showTiming(service.timeinMinBus1, service.bus1Image),
+            showTiming(service.timeinMinBus2, service.bus2Image),
+            showTiming(service.timeinMinBus3, service.bus3Image),
+          ],
+        ),
+      ),
+    );
   }
-}
 
-Widget buildListTile(ServiceModel service) {
-  return Card(
-    child: ListTile(
-      leading: Text(service.getServiceNo),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+  Widget showTiming(String arrTimeInMin, String busImage) {
+    return SizedBox(
+      width: 80,
+      child: Row(
         children: [
-          timingOne(service),
-          timingTwo(service),
-          timingThree(service)
+          Image.asset(busImage, width: 40, height: 50, fit: BoxFit.contain),
+          Text(" " + arrTimeInMin),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget timingOne(ServiceModel service) {
-  return SizedBox(
-    width: 80,
-    child: Row(
-      children: [
-        Image.asset(service.getBus1Image,
-            width: 40, height: 50, fit: BoxFit.contain),
-        Text(" " + service.timeinMinBus1),
-      ],
-    ),
-  );
-}
+  void setAlarm(int userTiming, ServiceModel service) {
+    late int remainingSec;
+    BusAvailibility busAvailable = BusAvailibility.busNotAvailable;
 
-Widget timingTwo(ServiceModel service) {
-  return SizedBox(
-    width: 80,
-    child: Row(
-      children: [
-        Image.asset(service.getBus2Image,
-            width: 40, height: 50, fit: BoxFit.contain),
-        Text(" " + service.timeinMinBus2),
-      ],
-    ),
-  );
-}
+    if (userTiming.toString() == service.timeinMinBus1 ||
+        userTiming.toString() == service.timeinMinBus2) {
+      busAvailable = BusAvailibility.busArriving;
+      setSnackBar(context, service, busAvailable, id);
+      print("The bus is arriving in $userTiming");
+    } else {
+      remainingSec = service.timeInSec(userTiming);
+      if (remainingSec == 0) {
+        busAvailable = BusAvailibility.busNotAvailable;
+        setSnackBar(context, service, busAvailable, id);
+        print('No Buses at selected time');
+      } else {
+        busAvailable = BusAvailibility.busAvailable;
+        setNotificationAlarm(service, userTiming, remainingSec);
+      }
+      setSnackBar(context, service, busAvailable, id);
+    }
+  }
 
-Widget timingThree(ServiceModel service) {
-  return SizedBox(
-    width: 80,
-    child: Row(
-      children: [
-        Image.asset(service.getBus3Image,
-            width: 40, height: 50, fit: BoxFit.contain),
-        Text(" " + service.timeinMinBus3),
-      ],
-    ),
-  );
+  void setNotificationAlarm(
+      ServiceModel service, int userTiming, int remainingSec) {
+    NotificationApi.showScheduledNotification(
+        id: id,
+        body: "${service.busNo} is arriving in $userTiming",
+        scheduledTime: DateTime.now().add(Duration(seconds: remainingSec)));
+  }
+
+  Future<void> setSnackBar(BuildContext context, ServiceModel service,
+      BusAvailibility busAvailable, int id) async {
+    late String text;
+    late Icon icon; 
+
+    final busAvailableSnackBarAction = SnackBarAction(
+        disabledTextColor: Colors.blue,
+        textColor: Colors.white,
+        label: 'Undo',
+        onPressed: () {
+          print("Pressed Cancel Notification");
+          NotificationApi.cancelNotification(id);
+        });
+    final noBusAvailableSnackBarAction =
+        SnackBarAction(label: '', onPressed: () {});
+
+    if (busAvailable == BusAvailibility.busArriving) {
+      text = "Bus ${service.busNo} is arriving";
+      icon = const Icon(Icons.alarm_on_outlined);
+    } else if (busAvailable == BusAvailibility.busNotAvailable) {
+      text = "No buses available for Bus ${service.busNo}";
+      icon = const Icon(Icons.error_outline);
+    } else {
+      text = "Alarm is set for Bus ${service.busNo}";
+      icon = const Icon(Icons.alarm_add_outlined);
+    }
+
+    final snackBar = SnackBar(
+      elevation: 5.0,
+      margin: const EdgeInsets.all(10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 4),
+      content: Row(
+        children: [
+          icon,
+          const SizedBox(width: 15),
+          Expanded(
+            child: Text(text),
+          )
+        ],
+      ),
+      action: busAvailable == BusAvailibility.busAvailable
+          ? busAvailableSnackBarAction
+          : noBusAvailableSnackBarAction,
+      backgroundColor: Colors.black.withOpacity(0.2),
+    );
+
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(snackBar);
+  }
 }

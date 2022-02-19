@@ -1,5 +1,4 @@
 import 'package:bus_app/bloc/bus_arrival_provider.dart';
-import 'package:bus_app/bloc/bus_noti_provider.dart';
 import 'package:bus_app/resources/notification_api.dart';
 import 'package:bus_app/screens/detail_screen.dart';
 import 'package:bus_app/screens/home_screen.dart';

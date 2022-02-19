@@ -11,31 +11,13 @@ class ServiceModel {
     return busArrivalTime.difference(currentTime).inMinutes;
   }
 
-  // bool setNotification(int duration, String busStopCode, bool isStarted) {
-  //   String estimatedArrival = service.nextBus.estimatedArrival;
-  //   int min = _convertTimeStamp(estimatedArrival);
-
-  //   print("Bus ${service.serviceNo} at BusStop $busStopCode : $min ");
-
-  //   if (min == duration || (isStarted == false)) {
-  //     isStarted = false;
-  //     NotificationApi.showNotification(
-  //         payload: busStopCode,
-  //         body: "Bus ${service.serviceNo} is reaching in 5 mins");
-  //   }
-  // }
-
   String _convertToMin(String estimatedArrival) {
-    // var currentTime = DateTime.now();
-    // var busArrivalTime = DateTime.parse(estimatedArrival);
-    // var difference = busArrivalTime.difference(currentTime).inMinutes;
-
     int difference = _convertTimeStamp(estimatedArrival);
 
     if (difference <= -1) {
       return "Left";
     } else if (difference < 1 && difference >= 0) {
-      return "Arr.";
+      return "Arr";
     } else {
       return difference.toString();
     }
@@ -65,20 +47,71 @@ class ServiceModel {
     }
   }
 
-  String get getBus1Image {
+  String get bus1Image {
     return _generateBusType(service.nextBus.type, service.nextBus.load);
   }
 
-  String get getBus2Image {
+  String get bus2Image {
     return _generateBusType(service.nextBus2.type, service.nextBus2.load);
   }
 
-  String get getBus3Image {
+  String get bus3Image {
     return _generateBusType(service.nextBus3.type, service.nextBus3.load);
   }
 
-  String get getServiceNo {
+  String get busNo {
     return service.serviceNo;
+  }
+
+  int timeInSec(int timerMin) {
+    var currentTime = DateTime.now();
+    late int sec;
+    late int min;
+    late int timeDiffInSec;
+
+    int bus1TimeInMin =
+        (int.tryParse(timeinMinBus1) == null) ? 0 : int.parse(timeinMinBus1);
+
+    int bus2TimeInMin =
+        (int.tryParse(timeinMinBus2) == null) ? 0 : int.parse(timeinMinBus2);
+
+    int bus3TimeInMin =
+        (int.tryParse(timeinMinBus3) == null) ? 0 : int.parse(timeinMinBus3);
+
+    if (bus1TimeInMin > timerMin) {
+      DateTime bus1ArrivalTime =
+          DateTime.parse(service.nextBus.estimatedArrival);
+      sec = bus1ArrivalTime.difference(currentTime).inSeconds;
+      min = bus1ArrivalTime.difference(currentTime).inMinutes;
+      print('The case 1: First Bus');
+    } else if (bus2TimeInMin > timerMin) {
+      DateTime bus2ArrivalTime =
+          DateTime.parse(service.nextBus2.estimatedArrival);
+      sec = bus2ArrivalTime.difference(currentTime).inSeconds;
+      min = bus2ArrivalTime.difference(currentTime).inMinutes;
+      print('The case 2: Second Bus');
+    } else if (bus3TimeInMin > timerMin) {
+      DateTime bus3ArrivalTime =
+          DateTime.parse(service.nextBus3.estimatedArrival);
+      sec = bus3ArrivalTime.difference(currentTime).inSeconds;
+      min = bus3ArrivalTime.difference(currentTime).inMinutes;
+      print('The case 3: Third Bus');
+    } else {
+      sec = 0;
+      min = 0;
+    }
+
+    timeDiffInSec = min - timerMin;
+
+    int remainingSec = sec - (min * 60);
+
+    var actualSec =
+        (remainingSec != 0) ? ((timeDiffInSec - 1) * 60 + remainingSec) : 0;
+
+    print("Remaining time: ${timeDiffInSec - 1}min ${remainingSec}s ");
+
+
+    return actualSec.toInt();
   }
 
   String get timeinMinBus1 {
